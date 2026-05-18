@@ -1,16 +1,33 @@
 import sqlite3
+from pathlib import Path
+
+
+DB_PATH = Path(__file__).resolve().parents[1] / "rti.db"
 
 def run_authority_agent(intent: dict) -> dict:
-    conn = sqlite3.connect("rti.db")
+    conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("""
-        SELECT department, pio_name, address, fee, level 
-        FROM departments 
-        WHERE department LIKE ?
-    """, (f"%{intent['department']}%",))
+    department = intent["department"]
+    search_terms = [
+        department,
+        department.replace("(PDS)", "").strip(),
+        department.replace("Department", "").strip(),
+    ]
 
-    row = cur.fetchone()
+    row = None
+    for term in search_terms:
+        if not term:
+            continue
+        cur.execute("""
+            SELECT department, pio_name, address, fee, level
+            FROM departments
+            WHERE department LIKE ?
+        """, (f"%{term}%",))
+        row = cur.fetchone()
+        if row:
+            break
+
     conn.close()
 
     if row:

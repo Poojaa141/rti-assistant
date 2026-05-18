@@ -1,7 +1,11 @@
 import sqlite3
+from pathlib import Path
+
+
+DB_PATH = Path(__file__).resolve().parents[1] / "rti.db"
 
 def create_db():
-    conn = sqlite3.connect("rti.db")
+    conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS departments (
