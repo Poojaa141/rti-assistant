@@ -1,10 +1,8 @@
 import sqlite3
-from datetime import datetime, timedelta
 from pathlib import Path
-
+from datetime import datetime, timedelta
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rti.db"
-
 
 def init_tracker_db():
     conn = sqlite3.connect(DB_PATH)
@@ -28,13 +26,10 @@ def init_tracker_db():
     conn.commit()
     conn.close()
 
-
 def run_tracker_agent(user_name: str, user_address: str, intent: dict, authority: dict, draft: str) -> dict:
     init_tracker_db()
-
-    today = datetime.now()
-    filed_date = today.strftime("%Y-%m-%d")
-    deadline_date = (today + timedelta(days=30)).strftime("%Y-%m-%d")
+    filed_date = datetime.now().strftime("%Y-%m-%d")
+    deadline_date = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
     days_remaining = 30
 
     conn = sqlite3.connect(DB_PATH)
@@ -54,7 +49,7 @@ def run_tracker_agent(user_name: str, user_address: str, intent: dict, authority
         draft,
         filed_date,
         deadline_date,
-        "Pending",
+        "Pending"
     ))
     conn.commit()
     application_id = cur.lastrowid
@@ -66,9 +61,8 @@ def run_tracker_agent(user_name: str, user_address: str, intent: dict, authority
         "deadline_date": deadline_date,
         "days_remaining": days_remaining,
         "status": "Pending",
-        "message": f"RTI saved! Government must respond by {deadline_date} (30 days)",
+        "message": f"RTI saved! Government must respond by {deadline_date} (30 days)"
     }
-
 
 def get_all_applications(user_name: str) -> list:
     conn = sqlite3.connect(DB_PATH)
@@ -84,9 +78,9 @@ def get_all_applications(user_name: str) -> list:
 
     applications = []
     for row in rows:
+        filed = datetime.strptime(row[3], "%Y-%m-%d")
         deadline = datetime.strptime(row[4], "%Y-%m-%d")
         days_remaining = (deadline - datetime.now()).days
-
         applications.append({
             "id": row[0],
             "subject": row[1],
@@ -94,31 +88,6 @@ def get_all_applications(user_name: str) -> list:
             "filed_date": row[3],
             "deadline_date": row[4],
             "days_remaining": max(0, days_remaining),
-            "status": row[5],
+            "status": row[5]
         })
     return applications
-
-
-if __name__ == "__main__":
-    intent = {
-        "subject": "ration card rejection reason",
-        "department": "Public Distribution System (PDS)",
-        "state": "Maharashtra",
-    }
-    authority = {
-        "department": "Public Distribution System (PDS)",
-        "pio_name": "Public Information Officer",
-        "address": "State Civil Supplies HQ, Maharashtra",
-        "fee": 10,
-        "level": "State",
-    }
-    draft = "Sample RTI letter content here"
-
-    print("Agent 4 saving RTI application...")
-    result = run_tracker_agent("Pooja Patil", "Pune, Maharashtra", intent, authority, draft)
-    print("Saved!", result)
-
-    print("\nAll your RTI applications:")
-    apps = get_all_applications("Pooja Patil")
-    for app in apps:
-        print(f"-> ID:{app['id']} | {app['subject']} | Deadline: {app['deadline_date']} | {app['days_remaining']} days left | {app['status']}")
