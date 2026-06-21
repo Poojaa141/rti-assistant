@@ -3,6 +3,51 @@ from pathlib import Path
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rti.db"
 
+CATEGORY_RULES = [
+    ("Identity & Documentation", [
+        "passport", "aadhaar", "aadhar", "voter", "election",
+        "birth certificate", "death certificate",
+    ]),
+    ("Public Distribution & Food Security", [
+        "ration", "pds", "public distribution", "food", "civil supplies",
+    ]),
+    ("Public Utilities", [
+        "electricity", "power", "water supply", "water board", "gas", "lpg",
+    ]),
+    ("Transport", [
+        "railway", "railways", "train", "ticket", "refund", "rto", "transport", "metro",
+    ]),
+    ("Welfare & Social Security", [
+        "pension", "epfo", "provident fund", "social welfare",
+        "disability", "widow", "old age",
+    ]),
+    ("Law & Order", [
+        "police", "court", "judiciary", "prison", "jail", "magistrate",
+    ]),
+    ("Education", [
+        "education", "scholarship", "school", "university", "college", "ugc",
+    ]),
+    ("Health", [
+        "health", "hospital", "medical", "pharmacy", "ayush",
+    ]),
+    ("Revenue & Land Records", [
+        "land record", "registration", "revenue", "survey",
+        "property tax", "stamp duty",
+    ]),
+    ("Banking & Finance", [
+        "bank", "income tax", "gst", "rbi", "finance",
+    ]),
+    ("Employment & Labour", [
+        "labour", "labor", "employment", "mgnrega", "wages",
+    ]),
+    ("Civic & Municipal Services", [
+        "municipal", "corporation", "panchayat", "building permission",
+        "sanitation", "garbage", "drainage",
+    ]),
+]
+
+DEFAULT_CATEGORY = "General Administration"
+
 def create_db():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -17,8 +62,15 @@ def create_db():
             state TEXT DEFAULT 'All',
             keywords TEXT,
             website TEXT,
-            notes TEXT
+            notes TEXT,
+            category TEXT
         )
+    """)
+    ensure_category_column(cur)
+    remove_duplicate_departments(cur)
+    cur.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS departments_department_unique_idx
+        ON departments (department)
     """)
     data = [
         ("Food and Civil Supplies", "Public Information Officer",
@@ -126,9 +178,45 @@ def create_db():
         (department, pio_name, address, fee, level, state, keywords, website, notes)
         VALUES (?,?,?,?,?,?,?,?,?)
     """, data)
+    update_department_categories(cur)
     conn.commit()
     conn.close()
     print(f"Database created successfully with {len(data)} departments!")
+
+
+def ensure_category_column(cur):
+    cur.execute("PRAGMA table_info(departments)")
+    columns = {row[1] for row in cur.fetchall()}
+    if "category" not in columns:
+        cur.execute("ALTER TABLE departments ADD COLUMN category TEXT")
+
+
+def update_department_categories(cur):
+    cur.execute("SELECT id, department, keywords FROM departments")
+    for department_id, department, keywords in cur.fetchall():
+        cur.execute(
+            "UPDATE departments SET category = ? WHERE id = ?",
+            (categorize_department(department, keywords), department_id),
+        )
+
+
+def categorize_department(department: str, keywords: str) -> str:
+    text = f"{department or ''} {keywords or ''}".lower()
+    for category, patterns in CATEGORY_RULES:
+        if any(pattern in text for pattern in patterns):
+            return category
+    return DEFAULT_CATEGORY
+
+
+def remove_duplicate_departments(cur):
+    cur.execute("""
+        DELETE FROM departments
+        WHERE id NOT IN (
+            SELECT MIN(id)
+            FROM departments
+            GROUP BY department
+        )
+    """)
 
 if __name__ == "__main__":
     create_db()

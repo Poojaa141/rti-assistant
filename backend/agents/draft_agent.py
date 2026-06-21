@@ -52,6 +52,8 @@ Date: {today}
 IMPORTANT:
 - Keep the full application concise and under 500 words.
 - Write only 3-4 focused information questions.
+- Ask only for existing records, reasons, status, officer details, timelines, rules, copies of documents, and file notes.
+- Do not ask for advice, suggestions, opinions, explanations of what the applicant should do, or future promises.
 - Do not add a long background story.
 - Fill in all details properly and use exactly this date: {today}.
 """
@@ -98,7 +100,7 @@ I, {user_name}, residing at {user_address}, hereby request the following informa
 1. Please provide the reason for: {intent['subject']}.
 2. Please provide copies of the records, notes, orders, or file remarks related to this matter.
 3. Please provide the current status of my application/request and the name/designation of the officer handling it.
-4. Please provide the appeal or correction procedure available to me, if applicable.
+4. Please provide the prescribed rules, guidelines, or timeline applicable to processing this matter.
 
 I am enclosing a fee of Rs.{fee}/- as application fee.
 
